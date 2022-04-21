@@ -1,4 +1,4 @@
-Comparisson Between a Trained Model With Parsimonius Data and EHR Data (Such as MIMICC-III)
+Comparisson Between a Trained Model With Parsimonius Data and EHR Data (Such as MIMIC-III)
 =============
 
 <img src="https://img.shields.io/badge/Study%20Status-Repo%20Created-lightgray.svg" alt="Study Status: Repo Created">
