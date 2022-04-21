@@ -1,0 +1,24 @@
+---
+title: Comparisson Between a Trained Model With Parsimonius Data and EHR Data (Such
+  as MIMIC-III)
+output: pdf_document
+---
+
+## Connect to PostgreSQL MIMIC-III Database
+
+```{r echo=T}
+library(DBI)
+
+connection = dbConnect(
+  odbc::odbc(),
+  Driver   = 'PostgreSQL Unicode',
+  Server   = 'mimic-server.postgres.database.azure.com',
+  Database = 'mimic',
+  UID      = 'postgres',
+  PWD      = Sys.getenv('DB_PWD'),
+  Port     = 5432,
+  sslmode  = 'require'
+)
+
+dbListTables(connection)
+```
