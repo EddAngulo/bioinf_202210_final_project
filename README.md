@@ -23,4 +23,4 @@ For the parsimonius datasets we've searched through [Kaggle](https://www.kaggle.
   - [Heart Disease](https://www.kaggle.com/datasets/kamilpytlak/personal-key-indicators-of-heart-disease).
   - [Diabetes](https://www.kaggle.com/datasets/uciml/pima-indians-diabetes-database).
 
-For an insight into the project progress checkout, the [project kanban](https://github.com/EddAngulo/bioinf_202210_final_project/projects/1).
+For an insight into the project progress, checkout the [project kanban](https://github.com/EddAngulo/bioinf_202210_final_project/projects/1).
