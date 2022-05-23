@@ -14,11 +14,52 @@ connection = dbConnect(
   Driver   = 'PostgreSQL Unicode',
   Server   = 'mimic-server.postgres.database.azure.com',
   Database = 'mimic',
+  schema   = 'omop',
   UID      = 'postgres',
-  PWD      = Sys.getenv('DB_PWD'),
+  PWD      = 'securepass321.',
   Port     = 5432,
   sslmode  = 'require'
 )
+
+dbListTables(connection, schema='omop')
+```
+
+## Define Cohorts
+
+```{r echo=T, results='hide'}
+library(dplyr)
+library(dbplyr)
+
+tbl(connection, in_schema('omop', 'drug_exposure')) %>%
+  head()
+```
+```{r echo=T}
+library(Eunomia)
+
+createCohorts(
+  connection,
+  cdmDatabaseSchema = "omop",
+  cohortDatabaseSchema = "omop",
+  cohortTable = "cohort"
+)
+```
+
+
+```{r echo=T}
+library(DBI)
+
+connection = dbConnect(
+  odbc::odbc(),
+  Driver   = 'PostgreSQL Unicode',
+  Server   = 'mimic-server.postgres.database.azure.com',
+  Database = 'mimic',
+  UID      = 'postgres',
+  PWD      = 'securepass321.',
+  Port     = 5432,
+  sslmode  = 'require'
+)
+
+
 
 dbListTables(connection)
 ```
