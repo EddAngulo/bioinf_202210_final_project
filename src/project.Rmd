@@ -4,62 +4,93 @@ title: Comparisson Between a Trained Model With Parsimonius Data and EHR Data (S
 output: pdf_document
 ---
 
+## Change working directory
+
+```{r echo=F results='hide'}
+Sys.setenv(DATABASECONNECTOR_JAR_FOLDER='/home/ohdsi/drivers')
+
+expected_wd = '/home/ohdsi/workdir/src'
+if (getwd() != expected_wd){
+  setwd(cat(getwd(), '/workdir/src/'))  
+}
+```
+
 ## Connect to PostgreSQL MIMIC-III Database
 
 ```{r echo=T}
-library(DBI)
+library(DatabaseConnector)
 
-connection = dbConnect(
-  odbc::odbc(),
-  Driver   = 'PostgreSQL Unicode',
-  Server   = 'mimic-server.postgres.database.azure.com',
-  Database = 'mimic',
-  schema   = 'omop',
-  UID      = 'postgres',
-  PWD      = 'securepass321.',
-  Port     = 5432,
-  sslmode  = 'require'
-)
+connectionDetails <- createConnectionDetails(dbms='postgresql',  
+                                             user='postgres', 
+                                             password='securepass321.',
+                                             server='mimic-server.postgres.database.azure.com/mimic',
+                                             port=5432,
+                                             extraSettings='ssl=true;',
+                                             pathToDriver=Sys.getenv("DATABASECONNECTOR_JAR_FOLDER"))
 
-dbListTables(connection, schema='omop')
+input_schema = "omop"
+output_schema = "edangulo_demar"
+
+connection <- connect(connectionDetails)
+
+dbListTables(connection, schema=input_schema)
 ```
-
-## Define Cohorts
 
 ```{r echo=T, results='hide'}
 library(dplyr)
 library(dbplyr)
 
-tbl(connection, in_schema('omop', 'drug_exposure')) %>%
-  head()
-```
-```{r echo=T}
-library(Eunomia)
-
-createCohorts(
-  connection,
-  cdmDatabaseSchema = "omop",
-  cohortDatabaseSchema = "omop",
-  cohortTable = "cohort"
-)
+querySql(connection, 'SELECT * FROM omop.drug_exposure LIMIT 5')
 ```
 
 
+## Define Cohorts
+
 ```{r echo=T}
-library(DBI)
+library(SqlRender)
+sql <- readSql("cohortsOfInterest.sql")
+cdmDatabaseSchema = "omop"
+resultsDatabaseSchema = "edangulo_demar"
 
-connection = dbConnect(
-  odbc::odbc(),
-  Driver   = 'PostgreSQL Unicode',
-  Server   = 'mimic-server.postgres.database.azure.com',
-  Database = 'mimic',
-  UID      = 'postgres',
-  PWD      = 'securepass321.',
-  Port     = 5432,
-  sslmode  = 'require'
-)
+sql <- render(sql, 
+              input_schema = input_schema, 
+              output_schema = output_schema)
+sql <- translate(sql, targetDialect="postgresql")
+
+executeSql(connection, sql)
+```
+
+```{r}
+sql <- paste("SELECT cohort_definition_id, COUNT(*) AS count",
+             "FROM @output_schema.heart_disease",
+             "GROUP BY cohort_definition_id")
+sql <- render(sql, output_schema = output_schema)
+sql <- translate(sql, targetDialect = connectionDetails$dbms)
+
+querySql(connection, sql)
+```
+
+```{r}
+sql <- paste('SELECT * FROM @output_schema.heart_disease LIMIT 5')
+sql <- render(sql, output_schema = output_schema)
+sql <- translate(sql, targetDialect = connectionDetails$dbms)
+
+querySql(connection, sql)
+```
 
 
+```{r echo=T}
+library(FeatureExtraction)
 
-dbListTables(connection)
+covariateSettings <- createDefaultCovariateSettings()
+
+covariateData <- getDbCovariateData(connectionDetails = connectionDetails,
+                                    cdmDatabaseSchema = input_schema,
+                                    cohortDatabaseSchema = output_schema,
+                                    cohortTable = "heart_disease",
+                                    cohortId = 321588,
+                                    rowIdField = "cohort_definition_id",
+                                    covariateSettings = covariateSettings)
+
+summary(covariateData)
 ```
