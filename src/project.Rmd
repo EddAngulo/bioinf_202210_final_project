@@ -78,6 +78,7 @@ sql <- translate(sql, targetDialect = connectionDetails$dbms)
 querySql(connection, sql)
 ```
 
+## Feature Extraction
 
 ```{r echo=T}
 library(FeatureExtraction)
@@ -89,8 +90,37 @@ covariateData <- getDbCovariateData(connectionDetails = connectionDetails,
                                     cohortDatabaseSchema = output_schema,
                                     cohortTable = "heart_disease",
                                     cohortId = 321588,
-                                    rowIdField = "cohort_definition_id",
+                                    rowIdField = "subject_id",
                                     covariateSettings = covariateSettings)
 
 summary(covariateData)
+```
+
+### Per-person Covariates
+
+Show Tables for per-person covariates
+
+```{r echo=T, results='hide'}
+show(covariateData)
+```
+
+Features for per-person covariates
+
+```{r echo=T, results='hide'}
+covariateData$covariateRef
+```
+
+```{r echo=T, results='hide'}
+covariateData$covariates
+```
+```{r}
+write.csv(covariateData$analysisRef , paste0(getwd(), '/../output/analysisRef.csv'), row.names = FALSE)
+```
+
+```{r}
+write.csv(covariateData$covariateRef, paste0(getwd(), '/../output/covariateRef.csv'), row.names = FALSE)
+```
+
+```{r}
+write.csv(covariateData$covariates, paste0(getwd(), '/../output/covariates.csv'), row.names = FALSE)
 ```

@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS @output_schema."heart_disease" AS (
 		321588 as "cohort_definition_id"
 		, "CO"."condition_start_date" as "cohort_start_date"
 		, "CO"."condition_end_date" as "cohort_end_date"
-		, "CO"."person_id" as "subject_id "
+		, "CO"."person_id" as "subject_id"
 	FROM @input_schema."condition_occurrence" AS "CO"
 	INNER JOIN (
 		SELECT 
