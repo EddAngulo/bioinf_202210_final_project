@@ -4,12 +4,17 @@ title: Comparisson Between a Trained Model With Parsimonius Data and EHR Data (S
 output: pdf_document
 ---
 
+## Set enviroment variables
+
+```{r echo=F results='hide'}
+Sys.setenv(DATABASECONNECTOR_JAR_FOLDER = '/home/ohdsi/drivers')
+```
+
 ## Change working directory
 
 ```{r echo=F results='hide'}
-Sys.setenv(DATABASECONNECTOR_JAR_FOLDER='/home/ohdsi/drivers')
-
 expected_wd = '/home/ohdsi/workdir/src'
+
 if (getwd() != expected_wd){
   setwd(cat(getwd(), '/workdir/src/'))  
 }
@@ -18,64 +23,63 @@ if (getwd() != expected_wd){
 ## Connect to PostgreSQL MIMIC-III Database
 
 ```{r echo=T}
-library(DatabaseConnector)
+pathToDriver = Sys.getenv('DATABASECONNECTOR_JAR_FOLDER')
 
-connectionDetails <- createConnectionDetails(dbms='postgresql',  
-                                             user='postgres', 
-                                             password='securepass321.',
-                                             server='mimic-server.postgres.database.azure.com/mimic',
-                                             port=5432,
-                                             extraSettings='ssl=true;',
-                                             pathToDriver=Sys.getenv("DATABASECONNECTOR_JAR_FOLDER"))
+DatabaseConnector::downloadJdbcDrivers(dbms = 'postgresql', pathToDriver = pathToDriver)
 
-input_schema = "omop"
-output_schema = "edangulo_demar"
+connectionDetails <- DatabaseConnector::createConnectionDetails(
+  dbms = 'postgresql',  
+  user = 'postgres', 
+  password = 'securepass321.',
+  server = 'mimic-server.postgres.database.azure.com/mimic',
+  port = 5432,
+  extraSettings = 'ssl=true;',
+  pathToDriver = pathToDriver
+)
 
-connection <- connect(connectionDetails)
+input_schema = 'omop'
+output_schema = 'edangulo_demar'
 
-dbListTables(connection, schema=input_schema)
+connection <- DatabaseConnector::connect(connectionDetails)
+
+dbListTables(connection, schema = input_schema)
 ```
 
 ```{r echo=T, results='hide'}
-library(dplyr)
-library(dbplyr)
-
-querySql(connection, 'SELECT * FROM omop.drug_exposure LIMIT 5')
+DatabaseConnector::querySql(connection, 'SELECT * FROM omop.drug_exposure LIMIT 5')
 ```
-
 
 ## Define Cohorts
 
 ```{r echo=T}
-library(SqlRender)
-sql <- readSql("cohortsOfInterest.sql")
-cdmDatabaseSchema = "omop"
-resultsDatabaseSchema = "edangulo_demar"
+cdmDatabaseSchema = 'omop'
+resultsDatabaseSchema = 'edangulo_demar'
 
-sql <- render(sql, 
-              input_schema = input_schema, 
-              output_schema = output_schema)
-sql <- translate(sql, targetDialect="postgresql")
+sql <- SqlRender::readSql('cohortsOfInterest.sql')
+sql <- SqlRender::render(sql, input_schema = input_schema, output_schema = output_schema)
+sql <- SqlRender::translate(sql, targetDialect = 'postgresql')
 
-executeSql(connection, sql)
+DatabaseConnector::executeSql(connection, sql)
 ```
 
 ```{r}
-sql <- paste("SELECT cohort_definition_id, COUNT(*) AS count",
-             "FROM @output_schema.heart_disease",
-             "GROUP BY cohort_definition_id")
-sql <- render(sql, output_schema = output_schema)
-sql <- translate(sql, targetDialect = connectionDetails$dbms)
+sql <- paste('SELECT cohort_definition_id, COUNT(*) AS count',
+             'FROM @output_schema.heart_disease',
+             'GROUP BY cohort_definition_id')
 
-querySql(connection, sql)
+sql <- SqlRender::render(sql, output_schema = output_schema)
+sql <- SqlRender::translate(sql, targetDialect = connectionDetails$dbms)
+
+DatabaseConnector::querySql(connection, sql)
 ```
 
 ```{r}
 sql <- paste('SELECT * FROM @output_schema.heart_disease LIMIT 5')
-sql <- render(sql, output_schema = output_schema)
-sql <- translate(sql, targetDialect = connectionDetails$dbms)
 
-querySql(connection, sql)
+sql <- SqlRender::render(sql, output_schema = output_schema)
+sql <- SqlRender::translate(sql, targetDialect = connectionDetails$dbms)
+
+DatabaseConnector::querySql(connection, sql)
 ```
 
 ## Feature Extraction
@@ -83,15 +87,17 @@ querySql(connection, sql)
 ```{r echo=T}
 library(FeatureExtraction)
 
-covariateSettings <- createDefaultCovariateSettings()
+covariateSettings <- FeatureExtraction::createDefaultCovariateSettings()
 
-covariateData <- getDbCovariateData(connectionDetails = connectionDetails,
-                                    cdmDatabaseSchema = input_schema,
-                                    cohortDatabaseSchema = output_schema,
-                                    cohortTable = "heart_disease",
-                                    cohortId = 321588,
-                                    rowIdField = "subject_id",
-                                    covariateSettings = covariateSettings)
+covariateData <- FeatureExtraction::getDbCovariateData(
+  connectionDetails = connectionDetails,
+  cdmDatabaseSchema = input_schema,
+  cohortDatabaseSchema = output_schema,
+  cohortTable = 'heart_disease',
+  cohortId = 321588,
+  rowIdField = 'subject_id',
+  covariateSettings = covariateSettings
+)
 
 summary(covariateData)
 ```
